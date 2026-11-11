@@ -2,6 +2,326 @@
 openapi: 3.1.0
 info:
   title: sonartest
-  version: architecture-v0
+  version: architecture-v1
   description: Designed API from the approved architecture (not extracted from code).
-paths: {}
+paths:
+  /auth/login:
+    post:
+      summary: Sign in; return opaque session token in body. Generic failure on bad
+        credentials.
+      description: Sign in; return opaque session token in body. Generic failure on
+        bad credentials.
+      operationId: post_auth_login
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{email, password}'
+      responses:
+        '200':
+          description: '{token, user} or 401 generic'
+  /auth/logout:
+    post:
+      summary: Revoke the current session token server-side.
+      description: Revoke the current session token server-side.
+      operationId: post_auth_logout
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: none
+      responses:
+        '200':
+          description: '204'
+      security:
+      - bearerAuth: []
+  /auth/signup:
+    post:
+      summary: Create account with email and password, enforce strength rules and
+        email uniqueness, store hash only, return session tok
+      description: Create account with email and password, enforce strength rules
+        and email uniqueness, store hash only, return session token.
+      operationId: post_auth_signup
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{email, password}'
+      responses:
+        '200':
+          description: '{token, user} or 400 validation / 409 email in use'
+  /me:
+    get:
+      summary: Return the signed-in user's profile and team state.
+      description: Return the signed-in user's profile and team state.
+      operationId: get_me
+      parameters: []
+      responses:
+        '200':
+          description: '{id, email, display_name, home_timezone, team_id}'
+      security:
+      - bearerAuth: []
+  /me/profile:
+    put:
+      summary: Update display name (required, non-empty) and home time zone from the
+        standard list.
+      description: Update display name (required, non-empty) and home time zone from
+        the standard list.
+      operationId: put_me_profile
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{display_name, home_timezone}'
+      responses:
+        '200':
+          description: '{user} or 400'
+      security:
+      - bearerAuth: []
+  /me/working-hours:
+    get:
+      summary: Return the user's recurring weekly schedule (7 weekdays).
+      description: Return the user's recurring weekly schedule (7 weekdays).
+      operationId: get_me_working_hours
+      parameters: []
+      responses:
+        '200':
+          description: '[{day_of_week, start_time, end_time, is_working}]'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Replace the weekly schedule; reject end not after start; unset days
+        treated as non-working.
+      description: Replace the weekly schedule; reject end not after start; unset
+        days treated as non-working.
+      operationId: put_me_working_hours
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '[{day_of_week, start_time, end_time, is_working}]'
+      responses:
+        '200':
+          description: 200 or 400
+      security:
+      - bearerAuth: []
+  /teams:
+    post:
+      summary: Create one team; rejected if the user already belongs to a team.
+      description: Create one team; rejected if the user already belongs to a team.
+      operationId: post_teams
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{name}'
+      responses:
+        '200':
+          description: '{team} or 409 already in a team'
+      security:
+      - bearerAuth: []
+  /teams/invitations:
+    post:
+      summary: Create an invite and email a join link via SendGrid; on email failure
+        return the link for manual sharing.
+      description: Create an invite and email a join link via SendGrid; on email failure
+        return the link for manual sharing.
+      operationId: post_teams_invitations
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{email}'
+      responses:
+        '200':
+          description: '{invite_link, email_sent: true|false}'
+      security:
+      - bearerAuth: []
+  /teams/join:
+    post:
+      summary: Accept an invite token; enforces valid/unexpired token and one-team-per-account.
+      description: Accept an invite token; enforces valid/unexpired token and one-team-per-account.
+      operationId: post_teams_join
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{token}'
+      responses:
+        '200':
+          description: '{team} or 400 invalid/expired / 409 already in a team'
+      security:
+      - bearerAuth: []
+  /teams/me:
+    get:
+      summary: Return the current team with members' display names and home time zones.
+      description: Return the current team with members' display names and home time
+        zones.
+      operationId: get_teams_me
+      parameters: []
+      responses:
+        '200':
+          description: '{team, members:[{display_name, home_timezone}]}'
+      security:
+      - bearerAuth: []
+  /teams/overlap:
+    get:
+      summary: Return each member's weekly hours converted to the viewer's time zone
+        (DST-correct for the requested week) plus full and
+      description: Return each member's weekly hours converted to the viewer's time
+        zone (DST-correct for the requested week) plus full and partial overlap windows.
+      operationId: get_teams_overlap
+      parameters: []
+      responses:
+        '200':
+          description: '{members:[{display_name, home_timezone, days}], full_overlaps,
+            partial_overlaps}'
+      security:
+      - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    users:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        password_hash:
+          type: string
+        display_name:
+          type: string
+        home_timezone:
+          type: string
+        team_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - email
+      - password_hash
+      - created_at
+    teams:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - created_by
+      - created_at
+    working_hours:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        day_of_week:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string
+        is_working:
+          type: boolean
+      required:
+      - id
+      - user_id
+      - day_of_week
+      - is_working
+    invitations:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        team_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        token:
+          type: string
+        status:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - team_id
+      - token
+      - status
+      - expires_at
+      - created_by
+      - created_at
+    sessions:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        last_active_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - user_id
+      - token
+      - created_at
+      - last_active_at
+      - expires_at

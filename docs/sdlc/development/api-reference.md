@@ -7,7 +7,20 @@ _No routes found._
 <!-- sdlc:auto:end endpoints -->
 
 <!-- sdlc:auto:start drift -->
-_Code matches the designed API._
+**Designed but missing:**
+
+- GET /me
+- GET /me/working-hours
+- GET /teams/me
+- GET /teams/overlap
+- POST /auth/login
+- POST /auth/logout
+- POST /auth/signup
+- POST /teams
+- POST /teams/invitations
+- POST /teams/join
+- PUT /me/profile
+- PUT /me/working-hours
 <!-- sdlc:auto:end drift -->
 
 <!-- sdlc:auto:start source -->
